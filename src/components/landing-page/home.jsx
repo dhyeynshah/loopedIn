@@ -1,24 +1,57 @@
+"use client";
+import React, { useState } from 'react';
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { UserPlus, Search, MessageSquare } from 'lucide-react'
+import { UserPlus, Search, MessageSquare, GraduationCap, Shrub, Users, BanknoteX, ArrowRightLeft, Calendar, Star, Clock } from 'lucide-react'
 
-export default function Home() {
+dwAexport default function Home() {
+  const [hoveredBeforeIndex, setHoveredBeforeIndex] = useState(null);
+  const [hoveredAfterIndex, setHoveredAfterIndex] = useState(null);
+  
   const featuresbefore = [
     {
       title: "community driven",
+      icon: <Users size={25} className="text-blue-600" />
     },
     {
       title: "learn & teach",
+      icon: <GraduationCap size={25} className="text-blue-600" />
     },
     {
       title: "mutual growth",
+      icon: <Shrub size={25} className="text-blue-600" />
     },
     {
       title: "completely free",
+      icon: <BanknoteX size={25} className="text-blue-600" />
     },
     {
       title: "skill-based exchange",
+      icon: <ArrowRightLeft size={25} className="text-blue-600" />
+    },
+  ]
+
+  const featuresafter = [
+    {
+      title: "community driven",
+      icon: <Users size={25} className="text-blue-600" />
+    },
+    {
+      title: "learn & teach",
+      icon: <GraduationCap size={25} className="text-blue-600" />
+    },
+    {
+      title: "mutual growth",
+      icon: <Shrub size={25} className="text-blue-600" />
+    },
+    {
+      title: "completely free",
+      icon: <BanknoteX size={25} className="text-blue-600" />
+    },
+    {
+      title: "skill-based exchange",
+      icon: <ArrowRightLeft size={25} className="text-blue-600" />
     },
   ]
   
@@ -38,6 +71,21 @@ export default function Home() {
       description: "Start a conversation and plan your learning sessions once connected.",
       icon: <MessageSquare size={16} className="text-blue-600" />
     },
+    {
+      point: "Step 4: Schedule Sessions",
+      description: "Set up regular meeting times that work for both of you to exchange knowledge.",
+      icon: <Calendar size={16} className="text-blue-600" />
+    },
+    {
+      point: "Step 5: Track Your Progress",
+      description: "Monitor your learning journey and celebrate milestones as you develop new skills.",
+      icon: <Star size={16} className="text-blue-600" />
+    },
+    {
+      point: "Step 6: Expand Your Network",
+      description: "Connect with additional users to learn multiple skills or deepen your expertise.",
+      icon: <Clock size={16} className="text-blue-600" />
+    },
   ]
   
   return (
@@ -55,12 +103,53 @@ export default function Home() {
         </div>
       </div>
       
-      <h1 className='text 3xl md:text-5xl font-semibold text-[#1A1A2E] mb-6 pl-8'>How users typically learn</h1>  
+      <h1 className='text-3xl md:text-5xl text-center font-bold text-[#1A1A2E] mb-10 pl-8'>How users typically learn</h1>  
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 px-4 md:px-8 lg:px-48 mb-12">
         {featuresbefore.map((featurebefore, index) => (
-          <Card key={index} className="bg-[#505673] text-[#ECEEFF] p-2 flex flex-col items-center justify-center">
-            <h3 className="text-lg font-bold text-center">{featurebefore.title}</h3>
-          </Card>
+          <div
+          key={index}
+          className={`transition-all duration-300 ${
+            hoveredBeforeIndex !== null && index > hoveredBeforeIndex ? 'transform translate-x-10' : ''
+          }`}
+          onMouseEnter={() => setHoveredBeforeIndex(index)}
+          onMouseLeave={() => setHoveredBeforeIndex(null)}
+          >
+            <Card
+            className={`bg-[#505673] text-[#ECEEFF] p-2 flex flex-row items-center justify-center transition-all duration-300 ${
+              hoveredBeforeIndex === index ? 'scale-120 origin-left' : ''
+            } group`}
+           >
+              <div className="group-hover:mr-2 transition-all duration-300">{featurebefore.icon}</div>
+              <h3 className="text-lg font-bold text-center group-hover:translate-x-2 transition-all duration-300">
+              {featurebefore.title}
+              </h3>
+            </Card>
+          </div>
+        ))}
+      </div>
+
+      <h1 className='text-3xl md:text-5xl text-center font-bold text-[#1A1A2E] mb-10 pl-8'>How will users learn</h1>  
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 px-4 md:px-8 lg:px-48 mb-12">
+        {featuresafter.map((featuresafter, index) => (
+          <div
+          key={index}
+          className={`transition-all duration-300 ${
+            hoveredAfterIndex !== null && index > hoveredAfterIndex ? 'transform translate-x-10' : ''
+          }`}
+          onMouseEnter={() => setHoveredAfterIndex(index)}
+          onMouseLeave={() => setHoveredAfterIndex(null)}
+          >
+            <Card
+            className={`bg-[#505673] text-[#ECEEFF] p-2 flex flex-row items-center justify-center transition-all duration-300 ${
+              hoveredAfterIndex === index ? 'scale-120 origin-left' : ''
+            } group`}
+           >
+              <div className="group-hover:mr-2 transition-all duration-300">{featuresafter.icon}</div>
+              <h3 className="text-lg font-bold text-center group-hover:translate-x-2 transition-all duration-300">
+              {featuresafter.title}
+              </h3>
+            </Card>
+          </div>
         ))}
       </div>
 
