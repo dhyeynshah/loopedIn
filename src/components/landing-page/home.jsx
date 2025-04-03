@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { UserPlus, Search, MessageSquare, GraduationCap, Shrub, Users, BanknoteX, ArrowRightLeft, Calendar, Star, Clock } from 'lucide-react'
 
-dwAexport default function Home() {
+export default function Home() {
   const [hoveredBeforeIndex, setHoveredBeforeIndex] = useState(null);
   const [hoveredAfterIndex, setHoveredAfterIndex] = useState(null);
   
