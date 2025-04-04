@@ -1,19 +1,27 @@
 "use client";
-import { useState } from 'react';
-import { loginWithEmail } from '@/lib/auth';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { loginWithEmail } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/authcontext";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const router = useRouter();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      router.push("/profile");
+    }
+  }, [user, router]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       await loginWithEmail(email, password);
-      router.push('/dashboard');
+      router.push("/profile");
     } catch (err) {
       setError(err.message);
     }
@@ -55,8 +63,10 @@ export default function Login() {
           </button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <a href="/signup" className="text-indigo-600 hover:underline">Sign up</a>
+          Don't have an account?{" "}
+          <a href="/signup" className="text-indigo-600 hover:underline">
+            Sign up
+          </a>
         </p>
       </div>
     </div>
