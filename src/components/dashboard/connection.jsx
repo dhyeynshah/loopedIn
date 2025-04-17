@@ -249,7 +249,8 @@ export default function Connections() {
             </div>
             {profile.bio && (
               <div>
-                <span className="font-medium text-gray-700">Bio:</span> {profile.bio}
+                <span className="font-medium text-gray-700">Bio:</span> {
+                profile.bio}
               </div>
             )}
           </div>
@@ -259,9 +260,26 @@ export default function Connections() {
   };
 
   const handleEmailClick = (email) => {
-    const subject = encodeURIComponent("SkillExchange Connection");
-    const body = encodeURIComponent("Hello, I'm reaching out from SkillExchange! Looking forward to connecting with you.");
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    const currentUserProfile = sentConnections.find(c => c.sender_id === userId)?.sender || 
+    receivedConnections.find(c => c.receiver_id === userId)?.receiver ||
+    acceptedConnections.find(c => c.sender_id === userId)?.sender ||
+    acceptedConnections.find(c => c.receiver_id === userId)?.receiver;
+  
+  const otherProfile = acceptedConnections.find(c => 
+    (c.sender_id === userId && c.receiver.email === email) || 
+    (c.receiver_id === userId && c.sender.email === email)
+  );
+  const profile = otherProfile?.sender_id === userId ? otherProfile.receiver : otherProfile.sender;
+  
+  const yourName = currentUserProfile?.first_name || '';
+  const firstName = profile?.first_name || '';
+  const yourSubject = currentUserProfile?.subject_proficient || '';
+  const theirSubject = profile?.subject_proficient || '';
+  
+  const subject = encodeURIComponent("LoopedIn Connection - Accepted");
+  const body = encodeURIComponent(`Hey ${firstName},\n\nMy name is ${yourName}, and I just saw that we got matched on LoopedIn! I'm excited to connect and help each other out.\n\nLooks like you're interested in ${theirSubject}, and I'm hoping to get better at ${yourSubject}. Let me know what times work for you to connect!\n\nLooking forward to learning together \n\nBest,\n${yourName}`);
+  
+  window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
   };
 
   const handleCalendarClick = (email, name) => {
@@ -281,8 +299,8 @@ export default function Connections() {
     const formattedStart = formatTimeForUrl(startTime);
     const formattedEnd = formatTimeForUrl(endTime);
     
-    const text = encodeURIComponent("SkillExchange Meeting");
-    const details = encodeURIComponent(`SkillExchange tutoring/learning session with ${name}`);
+    const text = encodeURIComponent("LoopedIn Meeting");
+    const details = encodeURIComponent(`LoopedIn Tutoring Sesssion with ${name}`);
     const location = encodeURIComponent("Online");
     const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${formattedStart}/${formattedEnd}&details=${details}&location=${location}&add=${email}`;
     
@@ -400,9 +418,9 @@ export default function Connections() {
               ))
             ) : (
               <div className="col-span-3 text-center py-10">
-                <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">No connection requests</h3>
-                <p className="mt-1 text-gray-500">You haven't received any connection requests yet.</p>
+                <AlertCircle className="mx-auto h-12 w-12 text-[#1E3A8A]" />
+                <h3 className="mt-2 text-lg font-medium text-[#3B82F6]">No connection requests</h3>
+                <p className="mt-1 text-[#A3BFFA]">You haven't received any connection requests yet.</p>
               </div>
             )}
           </div>
@@ -446,9 +464,9 @@ export default function Connections() {
               ))
             ) : (
               <div className="col-span-3 text-center py-10">
-                <Send className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">No sent requests</h3>
-                <p className="mt-1 text-gray-500">You haven't sent any connection requests yet.</p>
+                <Send className="mx-auto h-12 w-12 text-[#1E3A8A]" />
+                <h3 className="mt-2 text-lg font-medium text-[#3B82F6]">No sent requests</h3>
+                <p className="mt-1 text-[#A3BFFA]">You haven't sent any connection requests yet.</p>
               </div>
             )}
           </div>
@@ -463,17 +481,17 @@ export default function Connections() {
                 const displayName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim();
                 
                 return (
-                  <Card key={connection.id} className="overflow-hidden">
+                  <Card key={connection.id} className="overflow-hidden bg-[#EFF6FF]">
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-2">
                           <Avatar>
-                            <AvatarImage src={profile?.avatar_url} />
-                            <AvatarFallback>{profile?.first_name?.charAt(0) || '?'}</AvatarFallback>
+                            <AvatarImage src={profile?.avatar_url}/>
+                            <AvatarFallback className={"bg-[#1E3A8A] text-[#EFF6FF]"} >{profile?.first_name?.charAt(0) || '?'}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <CardTitle className="text-lg">{profile?.first_name} {profile?.last_name}</CardTitle>
-                            <CardDescription>{profile?.email}</CardDescription>
+                            <CardTitle className="text-lg text-[#0F2A6F]">{profile?.first_name} {profile?.last_name}</CardTitle>
+                            <CardDescription className={"text-[#A3BFFA]"}>{profile?.email}</CardDescription>
                           </div>
                         </div>
                         {getStatusBadge('accepted')}
@@ -481,29 +499,29 @@ export default function Connections() {
                     </CardHeader>
                     <CardContent className="pb-1">
                       <div className="space-y-3">
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-[#60A5FA]">
                           Connected since {formatDate(connection.updated_at)}
                         </p>
                         
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div>
-                            <span className="font-medium text-gray-700">School:</span> 
-                            <p className="mt-1">{profile?.school}</p>
+                            <span className="font-medium text-[#1E3A8A]">School:</span> 
+                            <p className="mt-1 text-[#1D4ED8]">{profile?.school}</p>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Grade:</span> 
-                            <p className="mt-1">{profile?.grade}</p>
+                            <span className="font-medium text-[#1E3A8A]">Grade:</span> 
+                            <p className="mt-1 text-[#1D4ED8]">{profile?.grade}</p>
                           </div>
                         </div>
                         
                         <div className="space-y-1">
                           <div>
-                            <span className="font-medium text-gray-700">Proficient in:</span> 
-                            <p className="mt-1">{profile?.subject_proficient}</p>
+                            <span className="font-medium text-[#1E3A8A]">Proficient in:</span> 
+                            <p className="mt-1 text-[#3B82F6]">{profile?.subject_proficient}</p>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Needs help with:</span> 
-                            <p className="mt-1">{profile?.subject_help}</p>
+                            <span className="font-medium text-[#1E3A8A]">Needs help with:</span> 
+                            <p className="mt-1 text-[#3B82F6]">{profile?.subject_help}</p>
                           </div>
                         </div>
                       </div>
@@ -511,14 +529,14 @@ export default function Connections() {
                       <div className="flex gap-2 mt-4">
                         <Button 
                           onClick={() => handleEmailClick(profile?.email)}
-                          className="flex-1"
+                          className="flex-1 bg-[#60A5FA] text-white hover:text-white hover:bg-[#3B82F6]"
                           variant="outline"
                         >
                           <Mail size={16} className="mr-1" /> Email
                         </Button>
                         <Button 
                           onClick={() => handleCalendarClick(profile?.email, displayName)}
-                          className="flex-1"
+                          className="flex-1 bg-[#1E3A8A] hover:bg-[#1D4ED8]"
                         >
                           <Calendar size={16} className="mr-1" /> Schedule
                         </Button>

@@ -61,7 +61,7 @@ const FormField = ({ label, name, value, onChange, required = true, placeholder,
           name={name}
           value={value}
           onChange={onChange}
-          className="h-[108px] rounded-lg border-greyscale-border-default" 
+          className="h-[108px] rounded-lg border-[#60A5FA]" 
           placeholder={placeholder}
           disabled={disabled}
         />
@@ -72,7 +72,7 @@ const FormField = ({ label, name, value, onChange, required = true, placeholder,
             value={value}
             onChange={onChange}
             type={type}
-            className="h-[42px] rounded-lg border-dimgray-200"
+            className="h-[42px] rounded-lg border-[#60A5FA]"
             placeholder={placeholder}
             disabled={disabled}
           />
@@ -94,7 +94,7 @@ const CheckboxGroup = ({ label, name, value, onChange, required = true, options,
           <div key={index} className="flex items-center space-x-3 md:space-x-4">
             <Checkbox 
               id={`option-${label}-${index}`} 
-              className="w-4 h-4 rounded-[2.29px] border-white border-[1.1px]"
+              className="w-4 h-4 rounded-[2.29px] border-[1.1px] data-[state=checked]:bg-[#60A5FA] data-[state=checked]:border-white data-[state=unchecked]:bg-transparent"
               checked={value === option}
               onCheckedChange={() => onChange({ target: { name, value: option } })}
             />
@@ -119,7 +119,7 @@ const SelectField = ({ label, name, value, onChange, required = true, fullWidth 
       </Label>
       
       <Select value={value} onValueChange={(value) => onChange({ target: { name, value } })}>
-        <SelectTrigger className="h-[42px] rounded-lg border-greyscale-border-default">
+        <SelectTrigger className="h-[42px] rounded-lg border-[#60A5FA] [&_svg]:stroke-[#CBD5E1]">
           <SelectValue placeholder="Select" />
         </SelectTrigger>
         <SelectContent>
@@ -151,7 +151,7 @@ const SchoolInput = ({ value, onChange, onRadioToggle, radioChecked }) => {
         value={value}
         onChange={onChange}
         type="text"
-        className="h-[42px] rounded-lg border-dimgray-200"
+        className="h-[42px] rounded-lg border-[#60A5FA]"
         placeholder="Enter your school name"
       />
     </div>
@@ -195,6 +195,7 @@ const ProfileForm = () => {
           ...prev,
           email: authUser.email
         }));
+        
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -294,11 +295,13 @@ const ProfileForm = () => {
       let result;
       
       if (existingProfile) {
+        // Update - the RLS policy will check if this is the user's own profile
         result = await supabase
           .from('profiles')
           .update(profileData)
           .eq('id', user.id);
       } else {
+        // Insert - the RLS policy will check if user.id matches the id field
         result = await supabase
           .from('profiles')
           .insert([profileData]);
@@ -316,12 +319,12 @@ const ProfileForm = () => {
   };
 
   const gradeOptions = ["9th Grade (freshman)", "10th Grade (sophmore)", "11th Grade (junior)", "12th Grade (senior)", "Other"];
-  const subjectOptions = ["AP Physics C", "AP Calculus AB", "AP Calculus", "Biology", "Chemistry", "English", "Computer Science", "History"];
+  const subjectOptions = ["AP Physics C", "AP Calculus AB", "AP Calculus BC", "Biology", "Chemistry", "AP Lang", "AP Lit", "AP Computer Science A"];
 
   return (
-    <div className="w-full py-12 px-5 sm:p-16 md:py-20 md:px-[120px]">
-      <Card className="w-full shadow-[0px_4px_24px_rgba(155,_138,_255,_0.1)] rounded-[32px] bg-[#16213E] py-10 text-center">
-        <CardHeader className="pb-14">
+    <div className="w-full py-12 px-5 sm:p-16 md:py-20 md:px-50">
+      <Card className="w-full shadow-[0px_4px_24px_rgba(155,_138,_255,_0.1)] rounded-[32px] bg-[#0F2A6F] py-10 text-center">
+        <CardHeader className="pb-6">
           <CardTitle className="text-2xl sm:text-[32px] md:text-[40px] font-bold text-white pb-3 sm:pb-4 font-satoshi">Profile</CardTitle>
           <CardDescription className="text-sm sm:text-[16px] md:text-lg leading-[150%] font-poppins text-white">
             <div className="flex items-center justify-center">
@@ -428,11 +431,10 @@ const ProfileForm = () => {
               <Button 
                 onClick={handleSubmit}
                 disabled={loading || !user}
-                className="absolute top-0 left-0 rounded-[38px] bg-black border-gainsboro-100 border-[1px] w-40 h-14 font-semibold text-white"
+                className="absolute top-0 left-0 rounded-[38px] bg-[#60A5FA] border-[#FFFFFF] hover:bg-[#3B82F6] border-[1px] w-40 h-14 font-semibold text-white"
               >
                 {loading ? "Submitting..." : "Submit"}
-              </Button>
-              <div className="w-[67px] absolute top-[52px] left-[-27px] rounded-[50%] bg-khaki h-[66px] z-[1]" />
+              </Button> 
             </div>
           </div>
         </CardContent>

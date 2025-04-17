@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Card } from "@/components/ui/card";
-import { UserPlus, Search, MessageSquare, GraduationCap, Shrub, Users, BanknoteX, Banknote, ArrowRightLeft, Calendar, Star, Clock, DollarSign, Lock, Layers } from 'lucide-react';
+import { UserPlus, Search, MessageSquare, GraduationCap, Shrub, Users, BanknoteX, Banknote, ArrowRightLeft, Calendar, Star, Clock, DollarSign, Lock, Layers, UserRoundPen } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -57,34 +57,29 @@ export default function Home() {
   
   const howitworks = [
     {
-      point: "Step 1: Create a Profile",
-      description: "Fill in your details, set privacy preferences, and select one subject to teach and one to learn.",
+      point: "Step 1: Sign Up",
+      description: "Sign up for free and confirm your email. It's quick and easy!",
       icon: <UserPlus size={16} className="text-blue-600" />
     },
     {
-      point: "Step 2: Browse through your opposites",
-      description: "View profiles of users with complementary skills. Send connection requests to potential matches.",
+      point: "Step 2: Create a Profile",
+      description: "Fill in your details, set privacy preferences, and select one subject to teach and one to learn.",
+      icon: <UserRoundPen size={16} className="text-blue-600" />
+    },
+    {
+      point: "Step 3: Browse through your opposites",
+      description: "View profiles of users with complementary skills. Send connection requests to whoever you like the best.",
       icon: <Search size={16} className="text-blue-600" />
     },
     {
-      point: "Step 3: Connect with Your Match",
-      description: "Start a conversation and plan your learning sessions once connected.",
+      point: "Step 4: Wait for your match to accept your request",
+      description: "Start a converstion through email to get to know each other better.",
       icon: <MessageSquare size={16} className="text-blue-600" />
     },
     {
-      point: "Step 4: Schedule Sessions",
-      description: "Set up regular meeting times that work for both of you to exchange knowledge.",
+      point: "Step 5: Schedule Sessions",
+      description: "Set up regular meeting times that work for both of you to know each other and learn together.",
       icon: <Calendar size={16} className="text-blue-600" />
-    },
-    {
-      point: "Step 5: Track Your Progress",
-      description: "Monitor your learning journey and celebrate milestones as you develop new skills.",
-      icon: <Star size={16} className="text-blue-600" />
-    },
-    {
-      point: "Step 6: Expand Your Network",
-      description: "Connect with additional users to learn multiple skills or deepen your expertise.",
-      icon: <Clock size={16} className="text-blue-600" />
     },
   ]
   
@@ -202,17 +197,10 @@ export default function Home() {
         
         <div className="mt-20 w-full md:w-3/4 lg:w-2/3 mx-auto rounded-xl overflow-hidden shadow-2xl">
           <div className="relative w-full h-80">
-            <Image 
-              src="/collaboration.jpg" 
-              alt="Students collaborating"
-              fill
-              className="object-cover rounded-xl"
-              priority
-            />
             <div className="absolute inset-0 bg-gradient-to-t from-[#1E3A8A] to-transparent opacity-70">
               <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-                <h3 className="text-2xl font-bold mb-2">Join the Community</h3>
-                <p className="text-lg">Thousands of students are already learning and teaching on LoopedIn</p>
+                <h3 className="text-2xl font-bold mb-2">Join our Community</h3>
+                <p className="text-lg">Help us make LoopedIn bigger and better. Find. Connect. Teach. Learn</p>
               </div>
             </div>
           </div>

@@ -38,7 +38,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#60A5FA]"
               placeholder="Enter your email"
               required
             />
@@ -49,7 +49,7 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#60A5FA]"
               placeholder="Enter your password"
               required
             />
@@ -57,14 +57,14 @@ export default function Login() {
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
-            className="w-full py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            className="w-full py-2 bg-[#1E3A8A] text-white rounded-md hover:bg-[#1D4ED8]"
           >
             Login
           </button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{" "}
-          <a href="/signup" className="text-indigo-600 hover:underline">
+          <a href="/signup" className="text-[#60A5FA] hover:text-[#3B82F6]">
             Sign up
           </a>
         </p>
