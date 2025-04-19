@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { loginWithEmail } from "@/lib/auth";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/authcontext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");

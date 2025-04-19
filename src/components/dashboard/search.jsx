@@ -9,10 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Mail, School, Check, X } from "lucide-react";
+import { Search, Mail, School, Check, X, AlertCircle } from "lucide-react";
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext'; // Update this path to match your project structure
 
 export default function FindPeers() {
+  const { user: authUser, loading: authLoading, refreshSession } = useAuth();
   const supabase = createClientComponentClient();
   const router = useRouter();
   const [peers, setPeers] = useState([]);
@@ -34,35 +36,44 @@ export default function FindPeers() {
   const isDraggingRef = useRef(false);
   const currentTranslateXRef = useRef(0);
 
+  // Function to ensure we have the latest auth state
+  const ensureAuthLoaded = async () => {
+    if (!authUser) {
+      console.log("Auth user not found in FindPeers, attempting to refresh session");
+      const newUser = await refreshSession();
+      if (!newUser) {
+        console.log("Still no auth user after refresh in FindPeers");
+        return null;
+      }
+      return newUser;
+    }
+    return authUser;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
+        setLoading(true);
         
-        let userId = sessionData?.session?.user?.id;
-        
-        if (!userId) {
-          console.log("No authenticated user found, using demo mode");
-
-          const { data: firstUser } = await supabase
-            .from('profiles')
-            .select('id')
-            .limit(1)
-            .single();
-            
-          userId = firstUser?.id;
-        }
-        
-        if (!userId) {
-          setError("Could not load user data. Please refresh or try logging in again.");
+        // Get the authenticated user using our new function
+        const currentAuthUser = await ensureAuthLoaded();
+        if (!currentAuthUser) {
+          setError("Authentication required. Please sign in to find peers.");
           setLoading(false);
           return;
         }
         
+        // Log the authenticated user to confirm
+        console.log("FINDPEERS - CONFIRMED AUTH USER:", {
+          id: currentAuthUser.id,
+          email: currentAuthUser.email
+        });
+        
+        // Fetch profile data for the authenticated user
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', userId)
+          .eq('id', currentAuthUser.id)
           .single();
           
         if (profileError || !profileData) {
@@ -75,29 +86,46 @@ export default function FindPeers() {
         console.log("Current user profile loaded:", profileData);
         setCurrentUser(profileData);
         
+        // Fetch peers where the matching criteria is met AND not the current user
         const { data: peersData, error: peersError } = await supabase
           .from('profiles')
           .select('*')
           .eq('subject_proficient', profileData.subject_help)
           .eq('subject_help', profileData.subject_proficient)
-          .neq('id', userId);
+          .neq('id', currentAuthUser.id);
         
         if (peersError) {
           console.error("Error fetching peers:", peersError);
           setError("Could not load peer data. Please try again.");
+          setLoading(false);
           return;
         }
         
+        console.log("Raw peers data:", peersData);
+        
+        // Fetch existing connections to filter out already connected peers
         const { data: existingConnections, error: connectionsError } = await supabase
           .from('connections')
-          .select('receiver_id')
-          .eq('sender_id', userId);
+          .select('receiver_id, sender_id')
+          .or(`sender_id.eq.${currentAuthUser.id},receiver_id.eq.${currentAuthUser.id}`);
           
         if (connectionsError) {
           console.error("Error fetching connections:", connectionsError);
         }
         
-        const connectedIds = existingConnections?.map(c => c.receiver_id) || [];
+        // We need to filter out peers that are already connected to the current user
+        // either as sender or receiver
+        const connectedIds = existingConnections?.reduce((acc, conn) => {
+          if (conn.sender_id === currentAuthUser.id) {
+            acc.push(conn.receiver_id);
+          } else if (conn.receiver_id === currentAuthUser.id) {
+            acc.push(conn.sender_id);
+          }
+          return acc;
+        }, []) || [];
+        
+        console.log("Connected IDs to filter out:", connectedIds);
+        
         const filteredPeers = peersData?.filter(peer => !connectedIds.includes(peer.id)) || [];
         
         console.log(`Found ${filteredPeers.length} potential peers (${connectedIds.length} filtered out)`);
@@ -111,8 +139,12 @@ export default function FindPeers() {
       }
     };
     
-    fetchData();
-  }, [supabase, router]);
+    // Only fetch data if auth is ready
+    if (!authLoading) {
+      fetchData();
+    }
+    
+  }, [authUser, authLoading, supabase, router]);
 
   useEffect(() => {
     if (!peers.length) return;
@@ -127,10 +159,10 @@ export default function FindPeers() {
       const term = filter.searchTerm.toLowerCase();
       result = result.filter(peer => 
         peer.first_name.toLowerCase().includes(term) || 
-        (peer.display_status_lastname === 'on' && peer.last_name.toLowerCase().includes(term)) ||
+        (peer.display_status_lastname === 'on' && peer.last_name?.toLowerCase().includes(term)) ||
         peer.subject_proficient.toLowerCase().includes(term) ||
         peer.subject_help.toLowerCase().includes(term) ||
-        (peer.display_status_school === 'on' && peer.school.toLowerCase().includes(term))
+        (peer.display_status_school === 'on' && peer.school?.toLowerCase().includes(term))
       );
     }
     
@@ -158,8 +190,34 @@ export default function FindPeers() {
     try {
       setProcessingConnection(true);
       
+      // Ensure we have the authenticated user again
+      const currentAuthUser = await ensureAuthLoaded();
+      if (!currentAuthUser) {
+        toast.error("Authentication error. Please sign in again.");
+        return false;
+      }
+      
       const peer = filteredPeers.find(p => p.id === receiverId);
-      if (!peer) return false;
+      if (!peer) {
+        console.error("Peer not found in filtered peers list", { receiverId });
+        return false;
+      }
+      
+      // VERY IMPORTANT DEBUGGING LOGS
+      console.log("CREATE CONNECTION DEBUG INFO:", {
+        current_user: {
+          id: currentAuthUser.id,
+          email: currentAuthUser.email,
+          first_name: currentUser.first_name
+        },
+        peer: {
+          id: peer.id,
+          email: peer.email,
+          first_name: peer.first_name
+        },
+        sender_will_be: currentAuthUser.id,
+        receiver_will_be: receiverId
+      });
       
       const subjectsShared = {
         sender_helps_with: currentUser.subject_proficient,
@@ -168,50 +226,38 @@ export default function FindPeers() {
         receiver_needs_help_with: peer.subject_help
       };
       
+      console.log("About to insert connection with sender_id:", currentAuthUser.id, "receiver_id:", receiverId);
+      
+      // Use currentAuthUser.id to ensure the correct sender ID
       const { data, error } = await supabase
         .from('connections')
         .insert({
-          sender_id: currentUser.id,
-          receiver_id: receiverId,
+          sender_id: currentAuthUser.id,  // YOU are the sender
+          receiver_id: receiverId,        // The PEER is the receiver
           status: 'pending',
           subjects_shared: subjectsShared
         })
         .select();
         
       if (error) {
+        console.error("Error creating connection:", error);
+        
         if (error.code === '23505') { 
-          toast({
-            title: "Already Connected",
-            description: `You've already connected with ${peer.first_name}`,
-            variant: "default"
-          });
+          toast.error(`You've already connected with ${peer.first_name}`);
           return true; 
         }
         
-        console.error("Error creating connection:", error);
-        toast({
-          title: "Connection Failed",
-          description: "Unable to connect with this peer. Please try again.",
-          variant: "destructive"
-        });
+        toast.error("Unable to connect with this peer. Please try again.");
         return false;
       }
       
-      console.log("Connection created:", data);
-      toast({
-        title: "Connected!",
-        description: `You've connected with ${peer.first_name}. They'll see your request soon.`,
-        variant: "default"
-      });
+      console.log("Connection created successfully:", data);
+      toast.success(`You've sent a connection request to ${peer.first_name}`);
       
       return true;
     } catch (err) {
       console.error("Unexpected error creating connection:", err);
-      toast({
-        title: "Connection Failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("An unexpected error occurred. Please try again.");
       return false;
     } finally {
       setProcessingConnection(false);
@@ -298,12 +344,32 @@ export default function FindPeers() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p>Loading peer matches...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authUser) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-6">Find Study Peers</h1>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-lg mx-auto">
+          <h2 className="text-lg font-semibold text-red-700 mb-2">Authentication Required</h2>
+          <p className="mb-6 text-slate-700">Please sign in to find peers</p>
+          <div className="flex gap-3">
+            <Button onClick={() => window.location.href = '/login'}>
+              Sign In
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/')}>
+              Go Home
+            </Button>
+          </div>
         </div>
       </div>
     );
