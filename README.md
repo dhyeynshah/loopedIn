@@ -1,8 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# LoopedIn
+
+LoopedIn is a free platform that helps students connect, learn from each other, and build together.
+
+The goal is simple: make academic help and collaboration more accessible, especially for students who don’t have access to expensive tutors, networks, or project teams.
+
+## What It Does
+
+### Version 1 (Live)
+Students get matched based on opposite strengths.  
+Example: if you're good at math but need help in English, you'll get matched with someone who’s strong in English and needs help in math. It’s a two-way exchange, not just tutoring, but actually learning from each other.
+
+### Version 1.5 (Coming Soon)
+Language exchange.  
+Students from different countries will be able to teach each other their native languages. Great for international students or incoming college freshmen who want to improve their English or connect across cultures.
+
+### Version 2 (In Progress)
+A project dashboard where students can post ideas for their apps, research, and creative stuff. Others can apply to join. A simple way to find teammates, build cool things, and get real experience.
+
+### Version 3 (Planned)
+A notes hub where students can upload and share notes in exchange for rewards (streaks, badges, etc). Eventually, this will train an AI study assistant that learns from student content and adapts to how students learn best.
+
+## Why I Built This
+
+As a high school student, I felt like there was no real space for us to grow, build, or learn with each other. Everything out there is either too serious, too expensive, or not made for people our age.  
+
+Basically, it’s the platform I wish existed.
+
+## Tech Stack
+
+- Next.js 
+- Supabase (with Row Level Security)
+- Tailwind CSS
+- shadcn/ui
 
 ## Getting Started
 
-First, run the development server:
+Clone the repo and run the dev server:
 
 ```bash
 npm run dev
@@ -12,25 +45,3 @@ yarn dev
 pnpm dev
 # or
 bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
