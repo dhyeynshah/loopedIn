@@ -8,7 +8,7 @@ The goal is simple: make academic help and collaboration more accessible, especi
 
 ### Version 1 (Live)
 Students get matched based on opposite strengths.  
-Example: if you're good at math but need help in English, you'll get matched with someone who’s strong in English and needs help in math. It’s a two-way exchange, not just tutoring, but actually learning from each other.
+Example: if you're good at math but need help in English, you'll get matched with someone who’s strong in English and needs help in math. It’s a two-way exchange, not just tutoring, but actually learning from each other. Having authentication and RLS set up successfully, but currently working through validating RLS and testing all connection scenarios.
 
 ### Version 1.5 (Coming Soon)
 Language exchange.  
