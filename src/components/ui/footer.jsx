@@ -16,7 +16,7 @@ const Footer = () => {
             />
           </Link>
           
-          <div className="flex flex-wrap justify-center gap-18 text-[#60A5FA]">
+          <div className="flex flex-wrap justify-center gap-4 lg:gap-18 text-[#60A5FA] text-sm md:text-base">
             <Link href="/home" className="hover:text-[#7DD3FC] transition-colors">
               Home
             </Link>
@@ -31,13 +31,13 @@ const Footer = () => {
             </Link>
           </div>
           
-          <a href="mailto:skillexchange@gmail.com" className="text-[#60A5FA] hover:text-[#7DD3FC] transition-colors">
-            skillexchange@gmail.com
+          <a href="mailto:ds.loopedin@gmail.com" className="text-sm md:text-base text-[#60A5FA] hover:text-[#7DD3FC] transition-colors">
+            ds.loopedin@gmail.com
           </a>
         </div>
         
-        <div className="mt-2 text-center text-[#A3BFFA]">
-          © {new Date().getFullYear()} skillexchange. All rights reserved.
+        <div className="mt-2 text-center text-[#A3BFFA] text-sm md:text-base ">
+          © {new Date().getFullYear()} LoopedIn. All rights reserved.
         </div>
       </div>
     </footer>

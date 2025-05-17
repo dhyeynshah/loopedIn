@@ -91,7 +91,7 @@ const CheckboxGroup = ({ label, name, value, onChange, required = true, options,
       
       <div className={`flex flex-col lg:flex-row ${inline ? "justify-between" : "justify-start gap-8"}`}>
         {options.map((option, index) => (
-          <div key={index} className="flex items-center space-x-3 md:space-x-4">
+          <div key={index} className="flex items-center space-x-2">
             <Checkbox 
               id={`option-${label}-${index}`} 
               className="w-4 h-4 rounded-[2.29px] border-[1.1px] data-[state=checked]:bg-[#60A5FA] data-[state=checked]:border-white data-[state=unchecked]:bg-transparent"
@@ -100,7 +100,7 @@ const CheckboxGroup = ({ label, name, value, onChange, required = true, options,
             />
             <label 
               htmlFor={`option-${label}-${index}`}
-              className="text-sm leading-[150%] font-normal text-white"
+              className="text-xs 2xl:text-sm leading-[150%] font-normal text-white"
             >
               {option}
             </label>
@@ -322,7 +322,7 @@ const ProfileForm = () => {
   const subjectOptions = ["AP Physics C", "AP Calculus AB", "AP Calculus BC", "Biology", "Chemistry", "AP Lang", "AP Lit", "AP Computer Science A"];
 
   return (
-    <div className="w-full py-12 px-5 sm:p-16 md:py-20 md:px-50">
+    <div className="w-full px-5 pt-20 pb-10 xl:px-50">
       <Card className="w-full shadow-[0px_4px_24px_rgba(155,_138,_255,_0.1)] rounded-[32px] bg-[#0F2A6F] py-10 text-center">
         <CardHeader className="pb-6">
           <CardTitle className="text-2xl sm:text-[32px] md:text-[40px] font-bold text-white pb-3 sm:pb-4 font-satoshi">Profile</CardTitle>
@@ -331,7 +331,7 @@ const ProfileForm = () => {
               <div className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-white mr-2">
                 <div className="w-2 h-2 rounded-full bg-white"></div>
               </div>
-              <span>Select the radio button (the circle) if you don't want that information to be visible to the public.</span>
+              <span className="text-sm">Select the radio button (the circle) if you don't want that information to be visible to the public.</span>
             </div>
           </CardDescription>
         </CardHeader>

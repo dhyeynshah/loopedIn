@@ -30,7 +30,7 @@ const Navbar = () => {
             />
           </div>
         </div>
-        <div className="flex items-center space-x-8">
+        <div className="flex items-center space-x-4 sm:space-x-8 text-xs sm:text-base">
           <Link href="/" className="text-[#60A5FA] font-medium hover:text-[#7DD3FC] transition-colors">
             Home
           </Link>

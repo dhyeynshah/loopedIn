@@ -1,3 +1,5 @@
+// Authentication system, debugging functions, and base component structure especially the swipe function were written with the help of ChatGPT.
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
