@@ -63,8 +63,8 @@ export default function Connections() {
         .from('connections')
         .select(`
           *,
-          sender:profiles!connections_sender_id_fkey(*),
-          receiver:profiles!connections_receiver_id_fkey(*)
+          sender:tutoring_profile!connections_sender_id_fkey(*),
+          receiver:tutoring_profile!connections_receiver_id_fkey(*)
         `)
         .or(`sender_id.eq.${currentAuthUser.id},receiver_id.eq.${currentAuthUser.id}`);
         
@@ -80,8 +80,8 @@ export default function Connections() {
           .from('connections')
           .select(`
             *,
-            sender:profiles(*),
-            receiver:profiles(*)
+            sender:tutoring_profile(*),
+            receiver:tutoring_profile(*)
           `)
           .or(`sender_id.eq.${currentAuthUser.id},receiver_id.eq.${currentAuthUser.id}`);
           
@@ -99,13 +99,13 @@ export default function Connections() {
         if (!connError2 && connections2 && connections2.length > 0) {
           for (const conn of connections2) {
             const { data: senderProfile } = await supabase
-              .from('profiles')
+              .from('tutoring_profile')
               .select('*')
               .eq('id', conn.sender_id)
               .single();
               
             const { data: receiverProfile } = await supabase
-              .from('profiles')
+              .from('tutoring_profile')
               .select('*')
               .eq('id', conn.receiver_id)
               .single();

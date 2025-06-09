@@ -64,7 +64,7 @@ export default function EnhancedFindPeers() {
           return;
         }
         const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
+          .from('tutoring_profile')
           .select('*')
           .eq('id', currentAuthUser.id)
           .single();
@@ -79,7 +79,7 @@ export default function EnhancedFindPeers() {
         setCurrentUser(profileData);
         
         const { data: peersData, error: peersError } = await supabase
-          .from('profiles')
+          .from('tutoring_profile')
           .select('*')
           .eq('subject_proficient', profileData.subject_help)
           .eq('subject_help', profileData.subject_proficient)

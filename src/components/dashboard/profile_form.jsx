@@ -150,7 +150,7 @@ const ProfileForm = () => {
           }
 
           const { data: profile, error } = await supabase
-            .from('profiles')
+            .from('tutoring_profile')
             .select('*')
             .eq('id', user.id)
             .single();
@@ -331,7 +331,7 @@ const ProfileForm = () => {
       };
 
       const { data: existingProfile } = await supabase
-        .from('profiles')
+        .from('tutoring_profile')
         .select('id')
         .eq('id', user.id)
         .single();
@@ -339,13 +339,13 @@ const ProfileForm = () => {
       let result;
       if (existingProfile) {
         result = await supabase
-          .from('profiles')
+          .from('tutoring_profile')
           .update(profileData)
           .eq('id', user.id);
       } else {
         profileData.created_at = new Date().toISOString();
         result = await supabase
-          .from('profiles')
+          .from('tutoring_profile')
           .insert([profileData]);
       }
 
