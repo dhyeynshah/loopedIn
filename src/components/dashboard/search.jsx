@@ -1,32 +1,35 @@
-// Authentication system, debugging functions, and base component structure especially the swipe function were written with the help of ChatGPT.
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Mail, School, Check, X, AlertCircle } from "lucide-react";
+import { Search, Mail, School, Check, X, AlertCircle, Heart, Zap, Clock, Star, Brain } from "lucide-react";
 import { toast } from 'sonner';
-import { useAuth } from '@/context/AuthContext'; // Update this path to match your project structure
+import { useAuth } from '@/context/AuthContext';
+import { findCompatiblePeers } from '@/lib/matching';
+import UserDropdownNav from "./dropdown";
 
-export default function FindPeers() {
+export default function EnhancedFindPeers() {
   const { user: authUser, loading: authLoading, refreshSession } = useAuth();
   const supabase = createClientComponentClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [peers, setPeers] = useState([]);
-  const [filteredPeers, setFilteredPeers] = useState([]);
+  const [aiMatches, setAiMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState("");
   const [processingConnection, setProcessingConnection] = useState(false);
+  const [viewMode, setViewMode] = useState("ai"); 
   const [filter, setFilter] = useState({
     grade: "all",
     searchTerm: "",
@@ -38,13 +41,10 @@ export default function FindPeers() {
   const isDraggingRef = useRef(false);
   const currentTranslateXRef = useRef(0);
 
-  // Function to ensure we have the latest auth state
   const ensureAuthLoaded = async () => {
     if (!authUser) {
-      console.log("Auth user not found in FindPeers, attempting to refresh session");
       const newUser = await refreshSession();
       if (!newUser) {
-        console.log("Still no auth user after refresh in FindPeers");
         return null;
       }
       return newUser;
@@ -57,21 +57,12 @@ export default function FindPeers() {
       try {
         setLoading(true);
         
-        // Get the authenticated user using our new function
         const currentAuthUser = await ensureAuthLoaded();
         if (!currentAuthUser) {
           setError("Authentication required. Please sign in to find peers.");
           setLoading(false);
           return;
         }
-        
-        // Log the authenticated user to confirm
-        console.log("FINDPEERS - CONFIRMED AUTH USER:", {
-          id: currentAuthUser.id,
-          email: currentAuthUser.email
-        });
-        
-        // Fetch profile data for the authenticated user
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -80,15 +71,13 @@ export default function FindPeers() {
           
         if (profileError || !profileData) {
           console.error("Profile error:", profileError);
-          setError("Could not load your profile data. Please try again.");
+          setError("Could not load your profile data. Please complete your profile first.");
           setLoading(false);
           return;
         }
         
-        console.log("Current user profile loaded:", profileData);
         setCurrentUser(profileData);
         
-        // Fetch peers where the matching criteria is met AND not the current user
         const { data: peersData, error: peersError } = await supabase
           .from('profiles')
           .select('*')
@@ -103,20 +92,11 @@ export default function FindPeers() {
           return;
         }
         
-        console.log("Raw peers data:", peersData);
-        
-        // Fetch existing connections to filter out already connected peers
         const { data: existingConnections, error: connectionsError } = await supabase
           .from('connections')
           .select('receiver_id, sender_id')
           .or(`sender_id.eq.${currentAuthUser.id},receiver_id.eq.${currentAuthUser.id}`);
           
-        if (connectionsError) {
-          console.error("Error fetching connections:", connectionsError);
-        }
-        
-        // We need to filter out peers that are already connected to the current user
-        // either as sender or receiver
         const connectedIds = existingConnections?.reduce((acc, conn) => {
           if (conn.sender_id === currentAuthUser.id) {
             acc.push(conn.receiver_id);
@@ -126,13 +106,23 @@ export default function FindPeers() {
           return acc;
         }, []) || [];
         
-        console.log("Connected IDs to filter out:", connectedIds);
-        
         const filteredPeers = peersData?.filter(peer => !connectedIds.includes(peer.id)) || [];
-        
-        console.log(`Found ${filteredPeers.length} potential peers (${connectedIds.length} filtered out)`);
         setPeers(filteredPeers);
-        setFilteredPeers(filteredPeers);
+        
+        if (filteredPeers.length > 0) {
+          setAiLoading(true);
+          try {
+            const matches = await findCompatiblePeers(profileData, filteredPeers);
+            setAiMatches(matches);
+          } catch (error) {
+            console.error("AI matching error:", error);
+            toast.error("AI matching temporarily unavailable. Showing basic matches.");
+            setAiMatches(filteredPeers.slice(0, 5));
+          } finally {
+            setAiLoading(false);
+          }
+        }
+        
       } catch (error) {
         console.error("Unexpected error:", error);
         setError("An unexpected error occurred. Please try again.");
@@ -141,49 +131,16 @@ export default function FindPeers() {
       }
     };
     
-    // Only fetch data if auth is ready
     if (!authLoading) {
       fetchData();
     }
     
-  }, [authUser, authLoading, supabase, router]);
-
-  useEffect(() => {
-    if (!peers.length) return;
-    
-    let result = [...peers];
-    
-    if (filter.grade && filter.grade !== "all") {
-      result = result.filter(peer => peer.grade === filter.grade);
-    }
-    
-    if (filter.searchTerm) {
-      const term = filter.searchTerm.toLowerCase();
-      result = result.filter(peer => 
-        peer.first_name.toLowerCase().includes(term) || 
-        (peer.display_status_lastname === 'on' && peer.last_name?.toLowerCase().includes(term)) ||
-        peer.subject_proficient.toLowerCase().includes(term) ||
-        peer.subject_help.toLowerCase().includes(term) ||
-        (peer.display_status_school === 'on' && peer.school?.toLowerCase().includes(term))
-      );
-    }
-    
-    setFilteredPeers(result);
-    setCurrentIndex(0);
-  }, [filter, peers]);
+  }, [authUser, authLoading, supabase, router, searchParams]);
 
   const getInitials = (peer) => {
     const firstInitial = peer.first_name ? peer.first_name.charAt(0) : '?';
     const lastInitial = peer.display_status_lastname === 'on' && peer.last_name ? peer.last_name.charAt(0) : '';
     return `${firstInitial}${lastInitial}`.toUpperCase();
-  };
-
-  const handleGradeChange = (value) => {
-    setFilter(prev => ({ ...prev, grade: value }));
-  };
-  
-  const handleSearchChange = (e) => {
-    setFilter(prev => ({ ...prev, searchTerm: e.target.value }));
   };
 
   const createConnection = async (receiverId) => {
@@ -192,34 +149,17 @@ export default function FindPeers() {
     try {
       setProcessingConnection(true);
       
-      // Ensure we have the authenticated user again
       const currentAuthUser = await ensureAuthLoaded();
       if (!currentAuthUser) {
         toast.error("Authentication error. Please sign in again.");
         return false;
       }
       
-      const peer = filteredPeers.find(p => p.id === receiverId);
+      const peer = (viewMode === "ai" ? aiMatches : peers).find(p => p.id === receiverId);
       if (!peer) {
-        console.error("Peer not found in filtered peers list", { receiverId });
+        console.error("Peer not found in list", { receiverId });
         return false;
       }
-      
-      // VERY IMPORTANT DEBUGGING LOGS
-      console.log("CREATE CONNECTION DEBUG INFO:", {
-        current_user: {
-          id: currentAuthUser.id,
-          email: currentAuthUser.email,
-          first_name: currentUser.first_name
-        },
-        peer: {
-          id: peer.id,
-          email: peer.email,
-          first_name: peer.first_name
-        },
-        sender_will_be: currentAuthUser.id,
-        receiver_will_be: receiverId
-      });
       
       const subjectsShared = {
         sender_helps_with: currentUser.subject_proficient,
@@ -228,14 +168,11 @@ export default function FindPeers() {
         receiver_needs_help_with: peer.subject_help
       };
       
-      console.log("About to insert connection with sender_id:", currentAuthUser.id, "receiver_id:", receiverId);
-      
-      // Use currentAuthUser.id to ensure the correct sender ID
       const { data, error } = await supabase
         .from('connections')
         .insert({
-          sender_id: currentAuthUser.id,  // YOU are the sender
-          receiver_id: receiverId,        // The PEER is the receiver
+          sender_id: currentAuthUser.id,
+          receiver_id: receiverId,
           status: 'pending',
           subjects_shared: subjectsShared
         })
@@ -253,9 +190,7 @@ export default function FindPeers() {
         return false;
       }
       
-      console.log("Connection created successfully:", data);
       toast.success(`You've sent a connection request to ${peer.first_name}`);
-      
       return true;
     } catch (err) {
       console.error("Unexpected error creating connection:", err);
@@ -267,14 +202,14 @@ export default function FindPeers() {
   };
 
   const handleConnect = async (connect) => {
-    if (currentIndex >= filteredPeers.length) return;
+    const currentList = viewMode === "ai" ? aiMatches : peers;
+    if (currentIndex >= currentList.length) return;
     
-    const peer = filteredPeers[currentIndex];
+    const peer = currentList[currentIndex];
     setDirection(connect ? "right" : "left");
     
     let success = true;
     if (connect) {
-      console.log(`Connecting with ${peer.first_name}`);
       success = await createConnection(peer.id);
     }
     
@@ -320,9 +255,9 @@ export default function FindPeers() {
     cardRef.current.style.transform = `translateX(${diffX}px) rotate(${rotate}deg)`;
     
     if (diffX > 50) {
-      cardRef.current.style.backgroundColor = "rgba(0, 255, 0, 0.05)";
+      cardRef.current.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
     } else if (diffX < -50) {
-      cardRef.current.style.backgroundColor = "rgba(255, 0, 0, 0.05)";
+      cardRef.current.style.backgroundColor = "rgba(128, 128, 128, 0.05)";
     } else {
       cardRef.current.style.backgroundColor = "";
     }
@@ -350,8 +285,8 @@ export default function FindPeers() {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading peer matches...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p>Loading your perfect study matches...</p>
         </div>
       </div>
     );
@@ -361,16 +296,12 @@ export default function FindPeers() {
     return (
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold mb-6">Find Study Peers</h1>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-lg mx-auto">
-          <h2 className="text-lg font-semibold text-red-700 mb-2">Authentication Required</h2>
-          <p className="mb-6 text-slate-700">Please sign in to find peers</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 max-w-lg mx-auto">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Authentication Required</h2>
+          <p className="mb-6 text-gray-600">Please sign in to find peers</p>
           <div className="flex gap-3">
-            <Button onClick={() => window.location.href = '/login'}>
-              Sign In
-            </Button>
-            <Button variant="outline" onClick={() => router.push('/')}>
-              Go Home
-            </Button>
+            <Button onClick={() => window.location.href = '/login'} className="bg-black hover:bg-gray-800 text-white">Sign In</Button>
+            <Button variant="outline" onClick={() => router.push('/')} className="border-gray-300 text-gray-700 hover:bg-gray-100">Go Home</Button>
           </div>
         </div>
       </div>
@@ -381,87 +312,118 @@ export default function FindPeers() {
     return (
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold mb-6">Find Study Peers</h1>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-lg mx-auto">
-          <h2 className="text-lg font-semibold text-red-700 mb-2">Something went wrong</h2>
-          <p className="mb-6 text-slate-700">{error}</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 max-w-lg mx-auto">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Something went wrong</h2>
+          <p className="mb-6 text-gray-600">{error}</p>
           <div className="flex gap-3">
-            <Button onClick={() => window.location.reload()}>
-              Refresh Page
-            </Button>
-            <Button variant="outline" onClick={() => router.push('/')}>
-              Go Home
-            </Button>
+            <Button onClick={() => window.location.reload()} className="bg-black hover:bg-gray-800 text-white">Refresh Page</Button>
+            <Button variant="outline" onClick={() => router.push('/')} className="border-gray-300 text-gray-700 hover:bg-gray-100">Go Home</Button>
           </div>
         </div>
       </div>
     );
   }
 
+  const currentList = viewMode === "ai" ? aiMatches : peers;
+
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6 text-[#1E3A8A]">Find Study Peers</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-black">Find Study Peers</h1>
+        
+        <div className="flex items-center gap-4">
+          <Button 
+            variant={viewMode === "ai" ? "default" : "outline"}
+            onClick={() => {setViewMode("ai"); setCurrentIndex(0);}}
+            className={`flex items-center gap-2 ${viewMode === "ai" ? "bg-black text-white hover:bg-gray-800" : "border-gray-300 text-gray-700 hover:bg-gray-100"}`}
+            disabled={aiLoading}
+          >
+            <Brain className="h-4 w-4" />
+            {aiLoading ? "AI Analyzing..." : "AI Matches"}
+          </Button>
+          <Button 
+            variant={viewMode === "browse" ? "default" : "outline"}
+            onClick={() => {setViewMode("browse"); setCurrentIndex(0);}}
+            className={`flex items-center gap-2 ${viewMode === "browse" ? "bg-black text-white hover:bg-gray-800" : "border-gray-300 text-gray-700 hover:bg-gray-100"}`}
+          >
+            <Search className="h-4 w-4" />
+            Browse All
+          </Button>
+          <UserDropdownNav />
+        </div>
+      </div>
       
       {!currentUser ? (
-        <div className="text-center p-8 bg-slate-50 rounded-lg">
+        <div className="text-center p-8 bg-gray-50 rounded-lg">
           <p className="mb-4">Unable to load your profile information</p>
-          <Button onClick={() => router.push('/profile')}>Go to Profile</Button>
+          <Button onClick={() => router.push('/profile')} className="bg-black hover:bg-gray-800 text-white">Complete Your Profile</Button>
         </div>
       ) : (
         <>
-          <div className="bg-[#CBD5E1] p-4 rounded-lg mb-6">
-            <p className="text-sm text-[#334155]">
-              Showing peers who can help with <Badge variant="secondary" className="bg-[#60A5FA] text-[#EFF6FF]">{currentUser.subject_help}</Badge> and
-              need help with <Badge variant="secondary" className="bg-[#60A5FA] text-[#EFF6FF]">{currentUser.subject_proficient}</Badge>
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search by name or school"
-                  value={filter.searchTerm}
-                  onChange={handleSearchChange}
-                  className="pl-10"
-                />
+          <div className="bg-gradient-to-r from-gray-800 to-black p-4 rounded-lg mb-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm opacity-90">
+                  {viewMode === "ai" ? "🤖 AI-powered matches based on personality & study style" : "📚 Browse all compatible peers"}
+                </p>
+                <p className="text-xs opacity-75 mt-1">
+                  Looking for peers who can help with <Badge variant="secondary" className="bg-white/20 text-white border-white/30">{currentUser.subject_help}</Badge> and
+                  need help with <Badge variant="secondary" className="bg-white/20 text-white border-white/30">{currentUser.subject_proficient}</Badge>
+                </p>
               </div>
-            </div>
-            <div>
-              <Select value={filter.grade} onValueChange={handleGradeChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by grade" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Grades</SelectItem>
-                  <SelectItem value="9">Grade 9</SelectItem>
-                  <SelectItem value="10">Grade 10</SelectItem>
-                  <SelectItem value="11">Grade 11</SelectItem>
-                  <SelectItem value="12">Grade 12</SelectItem>
-                </SelectContent>
-              </Select>
+              {viewMode === "ai" && aiMatches.length > 0 && (
+                <div className="text-right">
+                  <div className="text-2xl font-bold">{aiMatches.length}</div>
+                  <div className="text-xs opacity-75">Smart Matches</div>
+                </div>
+              )}
             </div>
           </div>
           
-          {filteredPeers.length === 0 ? (
-            <div className="text-center p-8 bg-slate-50 rounded-lg">
-              <p className="mb-2">No matching peers found</p>
-              <p className="text-sm text-slate-500">Try adjusting your filters or check back later</p>
+          {currentList.length === 0 ? (
+            <div className="text-center p-8 bg-gray-50 rounded-lg">
+              <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="mb-2">
+                {viewMode === "ai" ? "No AI matches found" : "No matching peers found"}
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                {viewMode === "ai" 
+                  ? "Try completing more of your profile or check back later" 
+                  : "Try adjusting your filters or check back later"
+                }
+              </p>
+              {viewMode === "ai" && (
+                <Button onClick={() => router.push('/profile')} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-100">
+                  Complete Profile
+                </Button>
+              )}
             </div>
-          ) : currentIndex >= filteredPeers.length ? (
-            <div className="text-center p-8 bg-slate-50 rounded-lg">
-              <p className="mb-2">You've seen all potential peers</p>
-              <p className="text-sm text-slate-500 mb-4">Check back later for new matches</p>
-              <Button onClick={() => setCurrentIndex(0)}>Start Over</Button>
+          ) : currentIndex >= currentList.length ? (
+            <div className="text-center p-8 bg-gray-50 rounded-lg">
+              <p className="mb-2">You've seen all {viewMode === "ai" ? "AI matches" : "potential peers"}</p>
+              <p className="text-sm text-gray-500 mb-4">Check back later for new matches or try the other view mode</p>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => setCurrentIndex(0)} className="bg-black hover:bg-gray-800 text-white">Start Over</Button>
+                <Button 
+                  variant="outline" 
+                  className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                  onClick={() => {
+                    setViewMode(viewMode === "ai" ? "browse" : "ai");
+                    setCurrentIndex(0);
+                  }}
+                >
+                  Try {viewMode === "ai" ? "Browse All" : "AI Matches"}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center">
               <div className="relative w-full max-w-md mb-4">
                 {[2, 1, 0].map(offset => {
                   const index = currentIndex + offset;
-                  if (index >= filteredPeers.length) return null;
+                  if (index >= currentList.length) return null;
                   
-                  const peer = filteredPeers[index];
+                  const peer = currentList[index];
                   const isTopCard = offset === 0;
                   
                   return (
@@ -493,49 +455,144 @@ export default function FindPeers() {
                       <div className="flex flex-col h-full p-6">
                         <div className="flex items-center gap-4 mb-4 pb-4 border-b">
                           <Avatar className="h-16 w-16">
-                            <AvatarFallback className="bg-[#1E3A8A] text-[#EFF6FF] text-xl">
+                            <AvatarFallback className="bg-black text-white text-xl">
                               {getInitials(peer)}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <h2 className="text-xl font-bold text-[#1E3A8A]">
+                          <div className="flex-1">
+                            <h2 className="text-xl font-bold text-black">
                               {peer.first_name}
                               {peer.display_status_lastname === 'on' ? ` ${peer.last_name}` : ''}
                             </h2>
-                            <p className="text-[#1D4ED8] font-medium"> {peer.grade}</p>
+                            <p className="text-gray-700 font-medium">{peer.grade}</p>
+                            {viewMode === "ai" && peer.aiCompatibilityScore && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Star className="h-4 w-4 text-gray-500" />
+                                <span className="text-sm font-medium text-gray-600">
+                                  {peer.aiCompatibilityScore}% Match
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                         
                         <div className="flex flex-wrap gap-2 mb-4">
-                          <Badge variant="outline" className="bg-green-50">Can help with {peer.subject_proficient}</Badge>
-                          <Badge variant="outline" className="bg-blue-50">Needs help with {peer.subject_help}</Badge>
+                          <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">
+                            Can help with {peer.subject_proficient}
+                          </Badge>
+                          <Badge variant="outline" className="bg-gray-100 border-gray-300 text-gray-700">
+                            Needs help with {peer.subject_help}
+                          </Badge>
                         </div>
-                        
+
+                        {viewMode === "ai" && peer.explanation && (
+                          <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Brain className="h-4 w-4 text-gray-600" />
+                              <span className="text-sm font-medium text-gray-700">AI Insight</span>
+                            </div>
+                            <p className="text-sm text-gray-700">{peer.explanation}</p>
+                            {peer.funInsight && (
+                              <p className="text-xs text-gray-600 mt-1 italic">💡 {peer.funInsight}</p>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="space-y-3 mb-4">
+                          {peer.personality_type && (
+                            <div className="flex items-center gap-2">
+                              <Heart className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm">
+                                <span className="font-medium">Personality:</span> {peer.personality_type}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {peer.study_style && (
+                            <div className="flex items-center gap-2">
+                              <Brain className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm">
+                                <span className="font-medium">Learning Style:</span> {peer.study_style}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {peer.study_schedule && (
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm">
+                                <span className="font-medium">Studies:</span> {peer.study_schedule}
+                              </span>
+                            </div>
+                          )}
+
+                          {peer.communication_style && (
+                            <div className="flex items-center gap-2">
+                              <Zap className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm">
+                                <span className="font-medium">Communication:</span> {peer.communication_style}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {(peer.favorite_food || peer.fun_fact) && (
+                          <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <h4 className="text-sm font-medium text-gray-800 mb-2">Fun Facts</h4>
+                            {peer.favorite_food && (
+                              <p className="text-xs text-gray-600 mb-1">
+                                🍕 Favorite food: {peer.favorite_food}
+                              </p>
+                            )}
+                            {peer.fun_fact && (
+                              <p className="text-xs text-gray-600">
+                                ✨ {peer.fun_fact}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
                         {peer.bio && (
                           <div className="mb-4">
-                            <h3 className="font-medium mb-1">Bio</h3>
-                            <p className="text-[#334155] text-sm">{peer.bio}</p>
+                            <h4 className="font-medium mb-1 text-gray-800">About</h4>
+                            <p className="text-gray-600 text-sm leading-relaxed">{peer.bio}</p>
                           </div>
                         )}
                         
                         <div className="mb-4 space-y-2">
                           {peer.display_status_school === 'on' && (
                             <div className="flex items-center gap-2">
-                              <School className="h-4 w-4 text-slate-400" />
+                              <School className="h-4 w-4 text-gray-400" />
                               <span className="text-sm">{peer.school}</span>
                             </div>
                           )}
                           {peer.display_status_email === 'on' && (
                             <div className="flex items-center gap-2">
-                              <Mail className="h-4 w-4 text-slate-400" />
+                              <Mail className="h-4 w-4 text-gray-400" />
                               <span className="text-sm">{peer.email}</span>
                             </div>
                           )}
                         </div>
+
+                        {viewMode === "ai" && peer.challenge && (
+                          <div className="mb-4 p-2 bg-gray-50 rounded border border-gray-200">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-gray-500" />
+                              <span className="text-xs text-gray-700">{peer.challenge}</span>
+                            </div>
+                          </div>
+                        )}
                         
                         {isTopCard && (
                           <div className="text-center mt-auto pt-4 border-t">
-                            <p className="text-xs text-slate-500">Swipe right to connect, left to pass</p>
+                            <p className="text-xs text-gray-500">
+                              Swipe right to connect, left to pass
+                            </p>
+                            {viewMode === "ai" && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                🤖 AI-recommended match
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>
@@ -544,9 +601,9 @@ export default function FindPeers() {
                 })}
               </div>
 
-              <div className="fixed-position flex justify-center gap-8 w-full max-w-md mt-6">
+              <div className="flex justify-center gap-8 w-full max-w-md mt-6">
                 <Button 
-                  className="h-16 w-16 rounded-full bg-red-50 hover:bg-red-100 text-red-500"
+                  className="h-16 w-16 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-500 border-2 border-gray-200"
                   variant="outline"
                   onClick={() => handleConnect(false)}
                   disabled={processingConnection}
@@ -554,13 +611,24 @@ export default function FindPeers() {
                   <X className="h-8 w-8" />
                 </Button>
                 <Button 
-                  className="h-16 w-16 rounded-full bg-green-50 hover:bg-green-100 text-green-500" 
-                  variant="outline"
+                  className="h-16 w-16 rounded-full bg-black hover:bg-gray-800 text-white border-2 border-black" 
                   onClick={() => handleConnect(true)}
                   disabled={processingConnection}
                 >
                   <Check className="h-8 w-8" />
                 </Button>
+              </div>
+
+              <div className="mt-6 text-center">
+                <p className="text-sm text-gray-500">
+                  {currentIndex + 1} of {currentList.length} {viewMode === "ai" ? "AI matches" : "peers"}
+                </p>
+                <div className="w-48 bg-gray-200 rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-black h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${((currentIndex + 1) / currentList.length) * 100}%` }}
+                  ></div>
+                </div>
               </div>
             </div>
           )}
